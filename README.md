@@ -1,6 +1,6 @@
 # Redhook
 
-Redhook is a generic webhook interface for landing data in [Kinesis Firehose](https://aws.amazon.com/kinesis/data-firehose/). On Elizabeth Warren's presidential campaign, Redhook was responsible for ingesting real-time data delivered to the campaign via webhooks and forwarding those data to [Civis](https://www.civisanalytics.com/). Civis as a platform runs on top of a [Redshift](https://aws.amazon.com/redshift/) database. Civis owned an managed the AWS account hosting that Redshift database and while you cannot configure a cross-account Kinesis Firehose in the AWS Console (yet), you can setup cross-account Firehoses (as we did here).
+Redhook is a generic webhook interface for landing data in [Kinesis Firehose](https://aws.amazon.com/kinesis/data-firehose/). On Elizabeth Warren's presidential campaign, Redhook was responsible for ingesting real-time data delivered to the campaign via webhooks and forwarding those data to [Redshift](https://aws.amazon.com/redshift/). We used [Civis](https://www.civisanalytics.com/)'s data platform on the campaign so Civis owned and managed the AWS account hosting our Redshift cluster. While you cannot configure a cross-account Kinesis Firehose in the AWS Console (yet), you can setup cross-account Firehoses (as we did here).
 
 During the campaign, Redhook was responsible for delivering all financial data and web analytics to the data teams. It operated at a near-zero cost and experienced no downtime -- though data delivery was delayed on occassion due to upstream problems.
 

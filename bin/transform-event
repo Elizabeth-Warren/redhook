@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+"""Transform Event.
+
+Usage:
+  transform-event --transform=<transform-fn> --filepath=<FILE>
+  transform-event (-h | --help)
+  transform-event --version
+
+Options:
+  -h --help                   Show this screen.
+  --version                   Show version.
+  --transform=<transform-fn>  What endpoint are we railroading?
+  --filepath=<FILE>           Location of a file containing some sample data
+"""
+
+from json import dumps, loads
+from sys import argv
+
+from docopt import docopt
+from redhook import transforms
+
+
+def print_transformed_sample(transformed_sample):
+    print("\n# transform ---------------------------------------------------\n")
+    print(dumps(transformed_sample, indent=2))
+    print("\n# Columns -----------------------------------------------------\n")
+    print("\n".join(transformed_sample.keys()))
+
+
+def transform_event(transformation, filepath):
+    fn = getattr(transforms, transformation, None)
+
+    if not fn:
+        print("Could not find converter for '{transformation}'")
+        exit(1)
+
+    with open(filepath, "r") as f:
+        transformed = fn(loads(f.read()))
+        if not isinstance(transformed, list):
+            transform = [transform]
+        [print_transformed_sample(sample) for sample in transformed]
+
+
+if __name__ == "__main__":
+    arguments = arguments = docopt(__doc__, version="Railroad 0.1.0")
+    transformation = arguments["--transform"]
+    filepath = arguments["--filepath"]
+    transform_event(transformation, filepath)

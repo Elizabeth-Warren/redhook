@@ -1,0 +1,110 @@
+service: redhook
+
+frameworkVersion: ">=1.1.0 <2.0.0"
+
+custom:
+  stage: ${opt:stage, env:STAGE, "dev"}
+  region: ${opt:region, env:REGION, "us-east-1"}
+
+  # These SSM lookups match "infrastructure"
+  deploy:
+    bucket_name: ${ssm:/${self:custom.stage}/s3/deploys/bucket/name~true}
+    bucket_arn: ${ssm:/${self:custom.stage}/s3/deploys/bucket/arn~true}
+
+  customDomain:
+    domainName: "${self:custom.stage}-EXAMPLE-SUBDOMAIN.EXAMPLE-DOMAIN.com"
+    stage: ${self:custom.stage}
+    certificateName: "*.EXAMPLE-DOMAIN.com"
+    createRoute53Record: true
+    securityPolicy: tls_1_2 # current top tier
+
+  pythonRequirements:
+    dockerizePip: true
+    slim: true
+    layer: true
+    useDownloadCache: false
+    useStaticCache: false
+
+  alerts:
+    nameTemplate: $[functionName]-$[metricName]-Alarm
+    topics:
+      alarm:
+        # This SSM lookup matches "infrastructure"
+        topic: ${ssm:/${self:custom.stage}/sns/alarms/name~true}
+    definitions:
+      functionInvocations:
+        threshold: 1000
+      functionDuration:
+        threshold: 6000
+    alarms:
+      - functionThrottles
+      - functionErrors
+      - functionInvocations
+      - functionDuration
+
+package:
+  excludeDevDependencies: true
+
+provider:
+  name: aws
+  runtime: python3.7
+  region: ${self:custom.region}
+  stage: ${self:custom.stage}
+
+  deploymentBucket:
+    name: ${self:custom.deploy.bucket_name}
+    blockPublicAccess: true
+
+  apiKeys:
+    - "${self:custom.stage}-default"
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "firehose:PutRecord"
+      Resource:
+        # These SSM lookups match "infrastructure"
+        - ${ssm:/${self:custom.stage}/kinesisfirehose/json/arn~true}
+        - ${ssm:/${self:custom.stage}/kinesisfirehose/json-with-basic-auth/arn~true}
+
+functions:
+  json:
+    name: ${self:custom.stage}-redhook-json
+    handler: handlers.json
+    memorySize: 256
+    timeout: 30
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    environment:
+      STAGE: ${self:custom.stage}
+      # This SSM lookup matches "infrastructure"
+      DELIVERY_STREAM_NAME: ${ssm:/${self:custom.stage}/kinesisfirehose/json/name~true}
+    events:
+      - http:
+          path: json
+          method: post
+          private: true
+
+  json-with-basic-auth:
+    name: ${self:custom.stage}-redhook-json-with-basic-auth
+    handler: handlers.json_with_basic_auth
+    memorySize: 256
+    timeout: 30
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    environment:
+      STAGE: ${self:custom.stage}
+      # This SSM lookup matches "infrastructure"
+      DELIVERY_STREAM_NAME: ${ssm:/${self:custom.stage}/kinesisfirehose/json-with-basic-auth/name~true}
+      # Best to stash these in SSM as well
+      BASIC_AUTH_USERNAME: EXAMPLE-USERNAME
+      BASIC_AUTH_PASSWORD: EXAMPLE-PASSWORD
+    events:
+      - http:
+          path: json-with-basic-auth
+          method: post
+
+plugins:
+  - serverless-python-requirements
+  - serverless-domain-manager
+  - serverless-plugin-aws-alerts

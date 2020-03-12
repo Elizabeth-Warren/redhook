@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+"""Railroad.
+
+Usage:
+  railroad --endpoint=<endpoint> --filepath=<FILE> [--api-key=<api-key>] [--username=<username>] [--password=<password>]
+  railroad (-h | --help)
+  railroad --version
+
+Options:
+  -h --help              Show this screen.
+  --version              Show version.
+  --endpoint=<endpoint>  What endpoint are we railroading?
+  --filepath=<FILE>      Where's some ndjson to send at this thing?
+  --api-key=<api-key>    The API Key to use against the endpoint. Takes precedence.
+  --username=<username>  Basic Auth: username
+  --password=<password>  Basic Auth: password
+"""
+
+from base64 import b64encode
+from json import dumps, loads
+
+from requests import post
+
+from docopt import docopt
+
+
+def railroad(endpoint, filepath, headers):
+    with open(filepath, "r") as f:
+        for l in f:
+            response = post(endpoint, headers=headers, json=loads(l)).text
+            print(f"Response was: '{response}'")
+
+
+if __name__ == "__main__":
+    arguments = arguments = docopt(__doc__, version="Railroad 0.1.0")
+    endpoint = arguments["--endpoint"]
+    filepath = arguments["--filepath"]
+    api_key = arguments["--api-key"]
+    username = arguments["--username"]
+    password = arguments["--password"]
+
+    if api_key:
+        railroad(endpoint, filepath, {"x-api-key": api_key})
+    elif username and password:
+        token = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+        railroad(endpoint, filepath, {"Authorization": f"Basic {token}"})
+    else:
+        print(
+            "You must provide either an API Key or a username/password combination..."
+        )
+        exit(1)

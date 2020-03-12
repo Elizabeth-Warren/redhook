@@ -1,0 +1,12 @@
+{
+  "name": "redhook",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless": "^1.60.5",
+    "serverless-domain-manager": "^3.3.0",
+    "serverless-plugin-aws-alerts": "^1.4.0",
+    "serverless-python-requirements": "^5.0.1"
+  }
+}

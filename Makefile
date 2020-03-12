@@ -1,7 +1,6 @@
 # Make Redhook
 
 STAGE?=dev
-INFRASTRUCTURE?=dev
 
 install:
 	pipenv install
@@ -16,7 +15,7 @@ install-deploy-dependencies:
 	npm install
 
 create-domain: install-deploy-dependencies
-	sls create_domain -s $(STAGE) --infrastructure $(INFRASTRUCTURE)
+	sls create_domain -s $(STAGE)
 
 deploy: install-deploy-dependencies create-domain
-	sls deploy -s $(STAGE) --infrastructure $(INFRASTRUCTURE)
+	sls deploy -s $(STAGE)

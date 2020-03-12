@@ -2,6 +2,8 @@
 
 data "aws_caller_identity" "current" {}
 
+data "aws_region" "current" {}
+
 data "aws_iam_policy_document" "main" {
   statement {
     effect = "Allow"
@@ -25,9 +27,7 @@ data "aws_iam_policy_document" "main" {
     ]
     resources = [
       aws_s3_bucket.this.arn,
-      "${aws_s3_bucket.this.arn}/*",
-      "arn:aws:s3:::%FIREHOSE_BUCKET_NAME%",
-      "arn:aws:s3:::%FIREHOSE_BUCKET_NAME%/*"
+      "${aws_s3_bucket.this.arn}/*"
     ]
   }
 
@@ -38,7 +38,7 @@ data "aws_iam_policy_document" "main" {
       "lambda:GetFunctionConfiguration"
     ]
     resources = [
-      for arn in [var.processing_fn_qualified_arn, "arn:aws:lambda:us-east-1:${data.aws_caller_identity.current.account_id}:function:%FIREHOSE_DEFAULT_FUNCTION%:%FIREHOSE_DEFAULT_VERSION%"] :
+      for arn in [var.processing_fn_qualified_arn, "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:%FIREHOSE_DEFAULT_FUNCTION%:%FIREHOSE_DEFAULT_VERSION%"] :
       arn
       if arn != "DISABLED"
     ]
@@ -56,9 +56,7 @@ data "aws_iam_policy_document" "main" {
     ]
     resources = [
       aws_s3_bucket.this.arn,
-      "${aws_s3_bucket.this.arn}/*",
-      "arn:aws:s3:::%FIREHOSE_BUCKET_NAME%",
-      "arn:aws:s3:::%FIREHOSE_BUCKET_NAME%/*"
+      "${aws_s3_bucket.this.arn}/*"
     ]
   }
 
@@ -70,7 +68,7 @@ data "aws_iam_policy_document" "main" {
       "kinesis:GetRecords"
     ]
     resources = [
-      "arn:aws:kinesis:us-east-1:${data.aws_caller_identity.current.account_id}:stream/%FIREHOSE_STREAM_NAME%"
+      "arn:aws:kinesis:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:stream/%FIREHOSE_STREAM_NAME%"
     ]
   }
 
@@ -80,7 +78,7 @@ data "aws_iam_policy_document" "main" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.this.name}:log-stream:*"
+      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.this.name}:log-stream:*"
     ]
   }
 
@@ -90,14 +88,14 @@ data "aws_iam_policy_document" "main" {
       "kms:Decrypt"
     ]
     resources = [
-      "arn:aws:kms:us-east-1:${data.aws_caller_identity.current.account_id}:key/%SSE_KEY_ID%"
+      "arn:aws:kms:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:key/%SSE_KEY_ID%"
     ]
 
     condition {
       test     = "StringEquals"
       variable = "kms:ViaService"
       values = [
-        "kinesis.%REGION_NAME%.amazonaws.com"
+        "kinesis.${data.aws_caller_identity.current.name}.amazonaws.com"
       ]
     }
 
@@ -105,7 +103,7 @@ data "aws_iam_policy_document" "main" {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:kinesis:arn"
       values = [
-        "arn:aws:kinesis:%REGION_NAME%:${data.aws_caller_identity.current.account_id}:stream/%FIREHOSE_STREAM_NAME%"
+        "arn:aws:kinesis:${data.aws_caller_identity.current.name}:${data.aws_caller_identity.current.account_id}:stream/%FIREHOSE_STREAM_NAME%"
       ]
     }
   }
